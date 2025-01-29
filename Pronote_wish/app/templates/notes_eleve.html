@@ -1,0 +1,27 @@
+{% extends "base_ele.html" %}
+
+{% block content %}
+<h1>PAGE NOTE ELEVE</h1>
+
+<h2>Liste des notes des élèves</h2>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Matière</th>
+            <th>Note</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for note in notes %}
+        <tr>
+            <td>{{ note.nom }}</td>
+            <td>{{ note.prenom }}</td>
+            <td>{{ note.nom_matiere }}</td>
+            <td>{{ note.note }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

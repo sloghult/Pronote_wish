@@ -1,5 +1,0 @@
-Commande pour lancer mysql sur le terminal :
-"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u root -p
-
-.venv\Scripts\activate
-python.exe .\run.py 

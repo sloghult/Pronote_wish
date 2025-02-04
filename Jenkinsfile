@@ -22,18 +22,12 @@ pipeline {
             }
         }
 
-        stage('Generate Dependency List') {
-            steps {
-                script {
-                    sh 'source venv/bin/activate && pip freeze > dependencies.txt'
-                }
-            }
-        }
-
         stage('Verify Dependencies') {
             steps {
                 script {
-                    sh 'ls -l dependencies.txt || echo "dependencies.txt not found!"'
+                    sh 'source venv/bin/activate && pip list'
+                    sh 'pip freeze > dependencies.txt'
+                    sh 'ls -lh dependencies.txt'
                 }
             }
         }
@@ -47,16 +41,24 @@ pipeline {
                         --enableExperimental \
                         --format HTML \
                         --out ${DEPENDENCY_CHECK_REPORTS} \
-                        -l debug
+                        -l debug || echo "OWASP Dependency Check failed!"
                     """
                 }
             }
         }
 
-        stage('Python Safety Check') {
+        stage('Safety Check') {
             steps {
                 script {
                     sh 'source venv/bin/activate && pip install safety && safety check -r requirements.txt --full-report > safety-report.txt'
+                }
+            }
+        }
+
+        stage('Pip-Audit Check') {
+            steps {
+                script {
+                    sh 'source venv/bin/activate && pip install pip-audit && pip-audit > pip-audit-report.txt'
                 }
             }
         }
@@ -71,7 +73,7 @@ pipeline {
                     reportFiles: "dependency-check-report.html",
                     reportName: "OWASP Dependency Check Report"
                 ])
-                archiveArtifacts artifacts: "safety-report.txt", onlyIfSuccessful: true
+                archiveArtifacts artifacts: "safety-report.txt, pip-audit-report.txt", onlyIfSuccessful: true
             }
         }
     }

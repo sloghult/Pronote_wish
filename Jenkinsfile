@@ -15,6 +15,7 @@ pipeline {
         stage('Check Workspace') {
             steps {
                 script {
+                    // Vérification que le fichier requirements.txt existe
                     sh 'ls -lah'
                     sh 'cat requirements.txt || echo "Fichier requirements.txt introuvable !"'
                 }
@@ -74,6 +75,7 @@ pipeline {
         stage('Afficher Résultats') {
             steps {
                 script {
+                    // Vérifie si les rapports ont bien été générés
                     sh 'cat ${REPORTS_DIR}/pip-audit-report.json || echo "Rapport pip-audit introuvable !"'
                     sh 'cat ${REPORTS_DIR}/safety-report.json || echo "Rapport Safety introuvable !"'
                 }
@@ -83,7 +85,8 @@ pipeline {
         stage('Publier les Rapports') {
             steps {
                 script {
-                    // Archive les fichiers rapports générés
+                    // Assure-toi que les fichiers JSON existent avant d'archiver
+                    sh 'ls -lh ${REPORTS_DIR} || echo "Le répertoire des rapports est vide ou introuvable."'
                     archiveArtifacts artifacts: "${REPORTS_DIR}/**/*.json", allowEmptyArchive: true
                 }
             }
@@ -92,7 +95,9 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline terminé avec succès, les rapports sont archivés."
+            // Afficher les fichiers dans le répertoire des rapports après l'exécution
+            echo "Vérification des fichiers générés dans ${REPORTS_DIR}"
+            sh "ls -lah ${REPORTS_DIR}"
         }
     }
 }

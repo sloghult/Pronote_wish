@@ -82,7 +82,10 @@ pipeline {
 
         stage('Publier les Rapports') {
             steps {
-                archiveArtifacts artifacts: "${REPORTS_DIR}/*.json", onlyIfSuccessful: true
+                script {
+                    // Archive les fichiers rapports générés
+                    archiveArtifacts artifacts: "${REPORTS_DIR}/**/*.json", allowEmptyArchive: true
+                }
             }
         }
     }

@@ -22,10 +22,18 @@ pipeline {
             }
         }
 
+        stage('Generate Dependency List') {
+            steps {
+                script {
+                    sh 'source venv/bin/activate && pip freeze > dependencies.txt'
+                }
+            }
+        }
+
         stage('Verify Dependencies') {
             steps {
                 script {
-                    sh 'ls -l requirements.txt || echo "requirements.txt not found!"'
+                    sh 'ls -l dependencies.txt || echo "dependencies.txt not found!"'
                 }
             }
         }
@@ -35,7 +43,7 @@ pipeline {
                 script {
                     sh """
                         dependency-check.sh --project FlaskApp \
-                        --scan requirements.txt \
+                        --scan dependencies.txt \
                         --enableExperimental \
                         --format HTML \
                         --out ${DEPENDENCY_CHECK_REPORTS} \
@@ -45,7 +53,15 @@ pipeline {
             }
         }
 
-        stage('Publish OWASP Report') {
+        stage('Python Safety Check') {
+            steps {
+                script {
+                    sh 'source venv/bin/activate && pip install safety && safety check -r requirements.txt --full-report > safety-report.txt'
+                }
+            }
+        }
+
+        stage('Publish Reports') {
             steps {
                 publishHTML(target: [
                     allowMissing: false,
@@ -55,6 +71,7 @@ pipeline {
                     reportFiles: "dependency-check-report.html",
                     reportName: "OWASP Dependency Check Report"
                 ])
+                archiveArtifacts artifacts: "safety-report.txt", onlyIfSuccessful: true
             }
         }
     }

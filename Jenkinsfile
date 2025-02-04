@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEPENDENCY_CHECK_VERSION = "latest" // Vous pouvez spécifier une version précise
+        DEPENDENCY_CHECK_VERSION = "latest"
         DEPENDENCY_CHECK_REPORTS = "owasp-report"
     }
 
@@ -16,9 +16,16 @@ pipeline {
         stage('Setup Environment') {
             steps {
                 script {
-                    // Création d'un environnement virtuel et installation des dépendances
                     sh 'python3 -m venv venv'
                     sh 'source venv/bin/activate && pip install -r requirements.txt'
+                }
+            }
+        }
+
+        stage('Verify Dependencies') {
+            steps {
+                script {
+                    sh 'ls -l requirements.txt || echo "requirements.txt not found!"'
                 }
             }
         }
@@ -28,9 +35,11 @@ pipeline {
                 script {
                     sh """
                         dependency-check.sh --project FlaskApp \
-                        --scan . \
+                        --scan requirements.txt \
+                        --enableExperimental \
                         --format HTML \
-                        --out ${DEPENDENCY_CHECK_REPORTS}
+                        --out ${DEPENDENCY_CHECK_REPORTS} \
+                        -l debug
                     """
                 }
             }

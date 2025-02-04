@@ -10,14 +10,14 @@ pipeline {
 
         stage('Set up Python Environment') {
             steps {
-                sh 'python -m venv venv' // Créer un environnement virtuel
-                sh 'source venv/bin/activate' // Activer l’environnement (Linux/Mac)
-                sh 'pip install --upgrade pip' // Mettre à jour pip
-                sh 'pip install -r requirements.txt' // Installer les dépendances
+                sh 'python -m venv venv' // Create a virtual environment
+                sh 'source venv/bin/activate' // Activate the environment (Linux/Mac)
+                sh 'pip install --upgrade pip' // Upgrade pip
+                sh 'pip install -r requirements.txt' // Install dependencies
             }
         }
 
-        stage('Run Tests') {  // Ajout du stage 3
+        stage('Run Tests') {
             steps {
                 sh '''
                 source venv/bin/activate
@@ -26,15 +26,15 @@ pipeline {
             }
             post {
                 always {
-                    junit 'test-results.xml' // Publier les résultats des tests
+                    junit 'test-results.xml' // Publish the test results
                 }
             }
         }
 
         stage('Security Scan') {
             steps {
-                sh 'pip install pip-audit' // Installer pip-audit
-                sh 'pip-audit --requirement requirements.txt --format=json > audit_report.json' // Scanner les vulnérabilités
+                sh 'pip install pip-audit' // Install pip-audit
+                sh 'pip-audit --requirement requirements.txt --format=json > audit_report.json' // Scan for vulnerabilities
             }
         }
 

@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DEPENDENCY_CHECK_REPORTS = "owasp-report"
+        REPORTS_DIR = "security-reports"
     }
 
     stages {
@@ -34,7 +34,7 @@ pipeline {
             }
         }
 
-        stage('Test pip-audit & Safety') {
+        stage('Install Security Tools') {
             steps {
                 script {
                     sh """
@@ -52,7 +52,8 @@ pipeline {
                 script {
                     sh """
                         . venv/bin/activate
-                        pip-audit -r requirements.txt --verbose | tee pip-audit-report.txt || echo "pip-audit a échoué !"
+                        mkdir -p ${REPORTS_DIR}
+                        pip-audit -r requirements.txt --format=json > ${REPORTS_DIR}/pip-audit-report.json || echo "pip-audit a échoué !"
                     """
                 }
             }
@@ -63,7 +64,8 @@ pipeline {
                 script {
                     sh """
                         . venv/bin/activate
-                        safety check -r requirements.txt --full-report | tee safety-report.txt || echo "safety a échoué !"
+                        mkdir -p ${REPORTS_DIR}
+                        safety check -r requirements.txt --json > ${REPORTS_DIR}/safety-report.json || echo "safety a échoué !"
                     """
                 }
             }
@@ -72,15 +74,15 @@ pipeline {
         stage('Afficher Résultats') {
             steps {
                 script {
-                    sh 'cat pip-audit-report.txt || echo "Rapport pip-audit introuvable !"'
-                    sh 'cat safety-report.txt || echo "Rapport Safety introuvable !"'
+                    sh 'cat ${REPORTS_DIR}/pip-audit-report.json || echo "Rapport pip-audit introuvable !"'
+                    sh 'cat ${REPORTS_DIR}/safety-report.json || echo "Rapport Safety introuvable !"'
                 }
             }
         }
 
         stage('Publier les Rapports') {
             steps {
-                archiveArtifacts artifacts: "pip-audit-report.txt, safety-report.txt", onlyIfSuccessful: true
+                archiveArtifacts artifacts: "${REPORTS_DIR}/*.json", onlyIfSuccessful: true
             }
         }
     }

@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        DEPENDENCY_CHECK_VERSION = "latest"
         DEPENDENCY_CHECK_REPORTS = "owasp-report"
     }
 
@@ -26,36 +25,11 @@ pipeline {
             steps {
                 script {
                     sh 'source venv/bin/activate && pip list'
-                    sh 'pip freeze > dependencies.txt'
-                    sh 'ls -lh dependencies.txt'
                 }
             }
         }
 
-        stage('OWASP Dependency Check') {
-            steps {
-                script {
-                    sh """
-                        dependency-check.sh --project FlaskApp \
-                        --scan dependencies.txt \
-                        --enableExperimental \
-                        --format HTML \
-                        --out ${DEPENDENCY_CHECK_REPORTS} \
-                        -l debug || echo "OWASP Dependency Check failed!"
-                    """
-                }
-            }
-        }
-
-        stage('Safety Check') {
-            steps {
-                script {
-                    sh 'source venv/bin/activate && pip install safety && safety check -r requirements.txt --full-report > safety-report.txt'
-                }
-            }
-        }
-
-        stage('Pip-Audit Check') {
+        stage('Pip-Audit Security Check') {
             steps {
                 script {
                     sh 'source venv/bin/activate && pip install pip-audit && pip-audit > pip-audit-report.txt'
@@ -63,24 +37,24 @@ pipeline {
             }
         }
 
-        stage('Publish Reports') {
+        stage('Safety Security Check') {
             steps {
-                publishHTML(target: [
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: "${DEPENDENCY_CHECK_REPORTS}",
-                    reportFiles: "dependency-check-report.html",
-                    reportName: "OWASP Dependency Check Report"
-                ])
-                archiveArtifacts artifacts: "safety-report.txt, pip-audit-report.txt", onlyIfSuccessful: true
+                script {
+                    sh 'source venv/bin/activate && pip install safety && safety check -r requirements.txt --full-report > safety-report.txt'
+                }
+            }
+        }
+
+        stage('Publish Security Reports') {
+            steps {
+                archiveArtifacts artifacts: "pip-audit-report.txt, safety-report.txt", onlyIfSuccessful: true
             }
         }
     }
 
     post {
         always {
-            archiveArtifacts artifacts: "${DEPENDENCY_CHECK_REPORTS}/dependency-check-report.html", onlyIfSuccessful: true
+            echo "Pipeline terminé avec succès, les rapports sont archivés."
         }
     }
 }

@@ -1,88 +1,58 @@
 pipeline {
     agent any
-    
+
     environment {
-        PYTHON_VERSION = '3.9'  // Ajustez selon votre version de Python
+        DEPENDENCY_CHECK_VERSION = "latest" // Vous pouvez spécifier une version précise
+        DEPENDENCY_CHECK_REPORTS = "owasp-report"
     }
-    
-    tools {
-        // Assurez-vous que ces outils sont configurés dans Jenkins
-        python 'Python-3.9'
-    }
-    
+
     stages {
         stage('Checkout') {
             steps {
-                // Récupère le code source
-                checkout scm
+                git url: 'https://github.com/votre-utilisateur/votre-repo.git', branch: 'main'
             }
         }
-        
-        stage('Setup Python Environment') {
+
+        stage('Setup Environment') {
             steps {
                 script {
-                    // Crée et active un environnement virtuel
-                    sh '''
-                        python -m venv venv
-                        . venv/bin/activate
-                        pip install -r Pronote_wish/requirements.txt
-                    '''
+                    // Création d'un environnement virtuel et installation des dépendances
+                    sh 'python3 -m venv venv'
+                    sh 'source venv/bin/activate && pip install -r requirements.txt'
                 }
             }
         }
-        
+
         stage('OWASP Dependency Check') {
             steps {
                 script {
-                    // Configure et exécute OWASP Dependency Check
-                    dependencyCheck(
-                        additionalArguments: """
-                            --scan . 
-                            --format 'HTML' 
-                            --format 'XML' 
-                            --enableExperimental 
-                            --enableRetired
-                            --enablePython
-                            --failOnCVSS 7
-                            --project 'Pronote_wish'
-                            --log './dependency-check.log'
-                        """,
-                        odcInstallation: 'OWASP-Dependency-Check'
-                    )
-                    
-                    // Publie les résultats
-                    dependencyCheckPublisher(
-                        pattern: 'dependency-check-report.xml',
-                        failedTotalCritical: 1,
-                        failedTotalHigh: 2,
-                        failedTotalMedium: 5,
-                        unstableTotalLow: 10
-                    )
+                    sh """
+                        dependency-check.sh --project FlaskApp \
+                        --scan . \
+                        --format HTML \
+                        --out ${DEPENDENCY_CHECK_REPORTS}
+                    """
                 }
             }
         }
+
+        stage('Publish OWASP Report') {
+            steps {
+                publishHTML(target: [
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: "${DEPENDENCY_CHECK_REPORTS}",
+                    reportFiles: "dependency-check-report.html",
+                    reportName: "OWASP Dependency Check Report"
+                ])
+            }
+        }
     }
-    
+
     post {
         always {
-            // Nettoie l'environnement de travail
-            cleanWs()
-            
-            // Archive les rapports
-            archiveArtifacts artifacts: 'dependency-check-report.*', fingerprint: true
-            
-            // Envoie une notification par email
-            emailext (
-                subject: "Pipeline ${currentBuild.fullDisplayName} - ${currentBuild.currentResult}",
-                body: """
-                    Pipeline terminée avec le statut : ${currentBuild.currentResult}
-                    
-                    Consultez le rapport de sécurité pour plus de détails.
-                    
-                    ${env.BUILD_URL}
-                """,
-                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
-            )
+            archiveArtifacts artifacts: "${DEPENDENCY_CHECK_REPORTS}/dependency-check-report.html", onlyIfSuccessful: true
         }
     }
 }

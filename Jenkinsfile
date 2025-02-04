@@ -17,6 +17,20 @@ pipeline {
             }
         }
 
+        stage('Run Tests') {  // Ajout du stage 3
+            steps {
+                sh '''
+                source venv/bin/activate
+                pytest --junitxml=test-results.xml || true
+                '''
+            }
+            post {
+                always {
+                    junit 'test-results.xml' // Publier les résultats des tests
+                }
+            }
+        }
+
         stage('Security Scan') {
             steps {
                 sh 'pip install pip-audit' // Installer pip-audit
